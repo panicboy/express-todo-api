@@ -21,10 +21,6 @@ Router.put('/', (req, res) => {
     buzzObject.heard = true;
     updateBuzzWord(buzzObject, res); // also sends response
   });
-  // Updates a buzzword. Returns true and the new score if successful otherwise returns just false
-  // body: { "buzzWord": String, "heard": Bool }
-  // response: { "success": true, newScore: Number }
-
 });
 
 Router.delete('/', (req, res) => {
@@ -33,10 +29,12 @@ Router.delete('/', (req, res) => {
     console.log('parsed data: ', buzzObject);
     deleteBuzzWord(buzzObject, res); // also sends response
   });
-  // Delete a buzzword. Returns true if successful else false
-  // body: { "buzzWord": String }
-  // response: { "success": true }
+});
 
+Router.get('/', (req, res) => {
+  if(req.originalUrl == '/buzzwords'){
+    res.status(400).json({"buzzWords": buzzWordList});
+  }
 });
 
 module.exports = Router;

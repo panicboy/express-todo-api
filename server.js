@@ -8,6 +8,7 @@ var buzz = require ('./routes/buzzword');
 /*  MIDDLEWARE  */
 app.use(express.static('public'));
 app.use('/buzzword', buzz);
+app.use('/buzzwords', buzz);
 
 app.get('/', function(req, res) {
   res.send('Buzzzz!');
