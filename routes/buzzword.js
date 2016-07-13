@@ -79,6 +79,7 @@ function deleteBuzzWord(buzzReq, res){
   var b = buzzFind(buzzReq);
   if(b.found) {
     buzzWordLookups.splice(b.indx,1);
+    buzzWordList.splice(b.indx,1);
     sendStatus(res, 200, true);
   } else {
     console.log(`'${buzzReq.buzzWord}' not found.`);
