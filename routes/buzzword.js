@@ -3,36 +3,33 @@ var Router = express.Router();
 var qstring = require('querystring');
 var buzzWordList = [];
 var buzzWordLookups = [];
+var score = 0;
 
 
 Router.post('/', (req, res) => {
-  console.log('req.method: ', req.method, ', url: ', req.originalUrl);
   if(req.originalUrl == '/reset') {
     resetBuzzWords(req, res);
   } else {
-    bufferAndParseRequest(req, (buzzObject) => {
-      if(buzzObject.buzzWord){
-        console.log('parsed data: ', buzzObject);
-        buzzObject.heard = false;
-        storeBuzzWord(buzzObject, res); // also sends response
+    bufferAndParseRequest(req, (buzzReq) => {
+      if(buzzReq.buzzWord){
+        buzzReq.points = Number(buzzReq.points);
+        buzzReq.heard = false;
+        storeBuzzWord(buzzReq, res);
       }
+      if(buzzReq.reset) sendStatus(res, 400, false);
     });
   }
 });
 
 Router.put('/', (req, res) => {
-  console.log('req.method: ', req.method, ', url: ', req.url);
-  bufferAndParseRequest(req, (buzzObject) => {
-    console.log('parsed data: ', buzzObject);
-    buzzObject.heard = true;
-    updateBuzzWord(buzzObject, res); // also sends response
+  bufferAndParseRequest(req, (buzzReq) => {
+    updateBuzzWord(buzzReq, res);
   });
 });
 
 Router.delete('/', (req, res) => {
-  bufferAndParseRequest(req, (buzzObject) => {
-    console.log('parsed data: ', buzzObject);
-    deleteBuzzWord(buzzObject, res); // also sends response
+  bufferAndParseRequest(req, (buzzReq) => {
+    deleteBuzzWord(buzzReq, res);
   });
 });
 
@@ -44,73 +41,80 @@ Router.get('/', (req, res) => {
 
 module.exports = Router;
 
-function bufferAndParseRequest(request, theCallback){
+function bufferAndParseRequest(req, theCallback){
   var theBuffer = '';
-  request.on('data', (chunk) => {
+  req.on('data', (chunk) => {
     theBuffer += chunk;
   });
-  request.on('end', () => {
+  req.on('end', () => {
      theCallback(qstring.parse(theBuffer.toString()));
   });
 }
 
-function storeBuzzWord(theBuzzObject, res){
-  var lcBuzzWord = theBuzzObject.buzzWord.toLowerCase();
-  if(buzzWordLookups.indexOf(lcBuzzWord) < 0) {
-    buzzWordLookups.push(lcBuzzWord);
-    buzzWordList.push(theBuzzObject);
-    res.status(201).json({"success": true});
-    console.log('buzzWordList: ', buzzWordList.slice(-1));
-    console.log('buzzword count: ', buzzWordLookups.length);
-    return true;
+function storeBuzzWord(buzzReq, res){
+  var b = buzzFind(buzzReq);
+  if(!b.found) {
+    buzzWordLookups.push(b.lcWord);
+    buzzWordList.push(buzzReq);
+    return sendStatus(res, 201, true);
+  } else {
+    sendStatus(res, 400, false);
   }
-  res.status(400).json({"success": false});
-  return false;
 }
 
-function updateBuzzWord(theBuzzObject, res){
-  var lcBuzzWord = theBuzzObject.buzzWord.toLowerCase();
-  var buzzIndex = buzzWordLookups.indexOf(lcBuzzWord);
-  if(buzzIndex >= 0) {
-    buzzWordLookups.splice(buzzIndex,1,lcBuzzWord);
-    console.log('old entry: ', buzzWordList.splice(buzzIndex,1,theBuzzObject));
-    res.status(200).json({"success": true});
-    return true;
+function updateBuzzWord(buzzReq, res){
+  var b = buzzFind(buzzReq);
+  if(b.found) {
+    var buzzReqHeard = (buzzReq.heard === true || buzzReq.heard == 'true');
+    if(buzzReqHeard) score += Number(buzzWordList[b.indx].points);
+    if(!buzzReqHeard) score -= Number(buzzWordList[b.indx].points);
+    buzzWordList[b.indx].heard = buzzReqHeard;
+    sendStatus(res, 200, true, score);
+  } else {
+    sendStatus(res, 400, false);
   }
-  res.status(400).json({"success": false});
-  return false;
 }
 
-function deleteBuzzWord(theBuzzObject, res){
-  var lcBuzzWord = theBuzzObject.buzzWord.toLowerCase();
-  var buzzIndex = buzzWordLookups.indexOf(lcBuzzWord);
-  if(buzzIndex >= 0) {
-    buzzWordLookups.splice(buzzIndex,1);
-    console.log('removed: ', buzzWordList.splice(buzzIndex,1), ', buzzwords: ', buzzWordLookups.length);
-    res.status(200).json({"success": true});
-    return true;
+function deleteBuzzWord(buzzReq, res){
+  var b = buzzFind(buzzReq);
+  if(b.found) {
+    buzzWordLookups.splice(b.indx,1);
+    sendStatus(res, 200, true);
+  } else {
+    console.log(`'${buzzReq.buzzWord}' not found.`);
+    sendStatus(res, 400, false);
   }
-  console.log(`'${theBuzzObject.buzzWord}' not found.`);
-  res.status(400).json({"success": false});
-  return false;
 }
 
 function resetBuzzWords(req,res){
-  bufferAndParseRequest(req, (buzzObject) => {
-    if(validateReset(buzzObject)){
+  bufferAndParseRequest(req, (buzzReq) => {
+    if(validateReset(buzzReq)){
+      console.log('reset request validated');
       buzzWordList = [];
       buzzWordLookups = [];
-      res.status(200).json({"success": true});
-      return true;
+      sendStatus(res, 200, true);
+    } else {
+      console.log('reset request not validated');
+      sendStatus(res, 400, false);
     }
-    console.log('reset request not validated');
-    res.status(400).json({"success": false});
-    return false;
   });
 }
 
-function validateReset(buzzObject){
-  if(buzzObject.reset == 'undefined') return false;
-  if(buzzObject.reset != 'true' && buzzObject.reset !== true) return false;
+function validateReset(buzzReq){
+  if(buzzReq.reset == 'undefined') return false;
+  if(buzzReq.reset != 'true' && buzzReq.reset !== true) return false;
   return true;
+}
+
+function buzzFind(buzzReq){
+  var lcBuzzWord = buzzReq.buzzWord.toLowerCase();
+  var buzzIndex = buzzWordLookups.indexOf(lcBuzzWord);
+  if(buzzIndex < 0) return {found: false, lcWord: lcBuzzWord};
+  return {found: true, indx: buzzIndex};
+}
+
+function sendStatus(res, statusCode, resultBoolean, score) {
+  if(arguments.length == 3) res.status(statusCode).json({"success": resultBoolean});
+  if(arguments.length == 4) res.status(statusCode).json({"success": resultBoolean, newScore: score});
+  return resultBoolean;
 }
