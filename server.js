@@ -9,6 +9,7 @@ var buzz = require ('./routes/buzzword');
 app.use(express.static('public'));
 app.use('/buzzword', buzz);
 app.use('/buzzwords', buzz);
+app.use('/reset', buzz);
 
 app.get('/', function(req, res) {
   res.send('Buzzzz!');

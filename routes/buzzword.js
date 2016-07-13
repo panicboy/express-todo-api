@@ -6,12 +6,18 @@ var buzzWordLookups = [];
 
 
 Router.post('/', (req, res) => {
-  console.log('req.method: ', req.method, ', url: ', req.url);
-  bufferAndParseRequest(req, (buzzObject) => {
-    console.log('parsed data: ', buzzObject);
-    buzzObject.heard = false;
-    storeBuzzWord(buzzObject, res); // also sends response
-  });
+  console.log('req.method: ', req.method, ', url: ', req.originalUrl);
+  if(req.originalUrl == '/reset') {
+    resetBuzzWords(req, res);
+  } else {
+    bufferAndParseRequest(req, (buzzObject) => {
+      if(buzzObject.buzzWord){
+        console.log('parsed data: ', buzzObject);
+        buzzObject.heard = false;
+        storeBuzzWord(buzzObject, res); // also sends response
+      }
+    });
+  }
 });
 
 Router.put('/', (req, res) => {
@@ -24,7 +30,6 @@ Router.put('/', (req, res) => {
 });
 
 Router.delete('/', (req, res) => {
-  console.log('req.method: ', req.method);
   bufferAndParseRequest(req, (buzzObject) => {
     console.log('parsed data: ', buzzObject);
     deleteBuzzWord(buzzObject, res); // also sends response
@@ -70,7 +75,6 @@ function updateBuzzWord(theBuzzObject, res){
     buzzWordLookups.splice(buzzIndex,1,lcBuzzWord);
     console.log('old entry: ', buzzWordList.splice(buzzIndex,1,theBuzzObject));
     res.status(200).json({"success": true});
-    console.log('replacement: ', buzzWordList[buzzIndex]);
     return true;
   }
   res.status(400).json({"success": false});
@@ -82,12 +86,31 @@ function deleteBuzzWord(theBuzzObject, res){
   var buzzIndex = buzzWordLookups.indexOf(lcBuzzWord);
   if(buzzIndex >= 0) {
     buzzWordLookups.splice(buzzIndex,1);
-    console.log('removed: ', buzzWordList.splice(buzzIndex,1));
-    console.log('buzzword count: ', buzzWordLookups.length);
+    console.log('removed: ', buzzWordList.splice(buzzIndex,1), ', buzzwords: ', buzzWordLookups.length);
     res.status(200).json({"success": true});
     return true;
   }
   console.log(`'${theBuzzObject.buzzWord}' not found.`);
   res.status(400).json({"success": false});
   return false;
+}
+
+function resetBuzzWords(req,res){
+  bufferAndParseRequest(req, (buzzObject) => {
+    if(validateReset(buzzObject)){
+      buzzWordList = [];
+      buzzWordLookups = [];
+      res.status(200).json({"success": true});
+      return true;
+    }
+    console.log('reset request not validated');
+    res.status(400).json({"success": false});
+    return false;
+  });
+}
+
+function validateReset(buzzObject){
+  if(buzzObject.reset == 'undefined') return false;
+  if(buzzObject.reset != 'true' && buzzObject.reset !== true) return false;
+  return true;
 }
