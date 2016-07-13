@@ -1,6 +1,5 @@
 var express  = require('express');
 var Router = express.Router();
-var qstring = require('querystring');
 var bodyParser = require('body-parser');
 var buzzWordList = [];
 var buzzWordLookups = [];
@@ -29,7 +28,7 @@ Router.delete('/', (req, res) => {
 });
 
 Router.get('/', (req, res) => {
-  if(req.originalUrl == '/buzzwords') res.status(400).json({"buzzWords": buzzWordList});
+  if(req.originalUrl == '/buzzwords') res.status(200).json({"buzzWords": buzzWordList});
 });
 
 module.exports = Router;
@@ -76,6 +75,7 @@ function resetBuzzWords(body,res){
     console.log('reset request validated');
     buzzWordList = [];
     buzzWordLookups = [];
+    score = 0;
     sendStatus(res, 200, true);
   } else {
     console.log('reset request not validated');
