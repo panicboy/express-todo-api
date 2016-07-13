@@ -1,33 +1,26 @@
 var express  = require('express');
 var Router = express.Router();
 var qstring = require('querystring');
-var buzzwordList = [];
+var buzzWordList = [];
 var buzzWordLookups = [];
 
-// Router.get('/counter', (req, res) => {
-//   res.send(`counter is currently ${counter}`);
-// });
-
-// Router.get('/', (req, res) => {
-//   res.send(`counter is currently ${counter}`);
-// });
 
 Router.post('/', (req, res) => {
-  console.log('req.method: ', req.method);
+  console.log('req.method: ', req.method, ', url: ', req.url);
   bufferAndParseRequest(req, (buzzObject) => {
     console.log('parsed data: ', buzzObject);
     buzzObject.heard = false;
-    // res.send(JSON.stringify(`{'success':${storeBuzzWord(buzzObject)}}`));
     storeBuzzWord(buzzObject, res); // also sends response
   });
-  // Creates a new buzzword object. Returns true if successful else false
-  // body: { "buzzWord": String, "points": Number }
-  // response: { "success": true }
-
-  });
+});
 
 Router.put('/', (req, res) => {
-  console.log('req: ', req);
+  console.log('req.method: ', req.method, ', url: ', req.url);
+  bufferAndParseRequest(req, (buzzObject) => {
+    console.log('parsed data: ', buzzObject);
+    buzzObject.heard = true;
+    updateBuzzWord(buzzObject, res); // also sends response
+  });
   // Updates a buzzword. Returns true and the new score if successful otherwise returns just false
   // body: { "buzzWord": String, "heard": Bool }
   // response: { "success": true, newScore: Number }
@@ -35,7 +28,7 @@ Router.put('/', (req, res) => {
 });
 
 Router.delete('/', (req, res) => {
-  console.log('req: ', req);
+  console.log('req.method: ', req.method);
   // Delete a buzzword. Returns true if successful else false
   // body: { "buzzWord": String }
   // response: { "success": true }
@@ -58,10 +51,24 @@ function storeBuzzWord(theBuzzObject, res){
   var lcBuzzWord = theBuzzObject.buzzWord.toLowerCase();
   if(buzzWordLookups.indexOf(lcBuzzWord) < 0) {
     buzzWordLookups.push(lcBuzzWord);
-    buzzwordList.push(theBuzzObject);
+    buzzWordList.push(theBuzzObject);
     res.status(201).json({"success": true});
-    console.log('buzzwordList: ', buzzwordList.slice(-1));
+    console.log('buzzWordList: ', buzzWordList.slice(-1));
     console.log('buzzWordLookups: ', buzzWordLookups.slice(-1));
+    return true;
+  }
+  res.status(400).json({"success": false});
+  return false;
+}
+
+function updateBuzzWord(theBuzzObject, res){
+  var lcBuzzWord = theBuzzObject.buzzWord.toLowerCase();
+  var buzzIndex = buzzWordLookups.indexOf(lcBuzzWord);
+  if(buzzIndex >= 0) {
+    buzzWordLookups.splice(buzzIndex,1,lcBuzzWord);
+    console.log('old entry: ', buzzWordList.splice(buzzIndex,1,theBuzzObject));
+    res.status(200).json({"success": true});
+    console.log('replacement: ', buzzWordList[buzzIndex]);
     return true;
   }
   res.status(400).json({"success": false});
