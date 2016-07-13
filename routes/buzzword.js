@@ -29,6 +29,10 @@ Router.put('/', (req, res) => {
 
 Router.delete('/', (req, res) => {
   console.log('req.method: ', req.method);
+  bufferAndParseRequest(req, (buzzObject) => {
+    console.log('parsed data: ', buzzObject);
+    deleteBuzzWord(buzzObject, res); // also sends response
+  });
   // Delete a buzzword. Returns true if successful else false
   // body: { "buzzWord": String }
   // response: { "success": true }
@@ -54,7 +58,7 @@ function storeBuzzWord(theBuzzObject, res){
     buzzWordList.push(theBuzzObject);
     res.status(201).json({"success": true});
     console.log('buzzWordList: ', buzzWordList.slice(-1));
-    console.log('buzzWordLookups: ', buzzWordLookups.slice(-1));
+    console.log('buzzword count: ', buzzWordLookups.length);
     return true;
   }
   res.status(400).json({"success": false});
@@ -71,6 +75,21 @@ function updateBuzzWord(theBuzzObject, res){
     console.log('replacement: ', buzzWordList[buzzIndex]);
     return true;
   }
+  res.status(400).json({"success": false});
+  return false;
+}
+
+function deleteBuzzWord(theBuzzObject, res){
+  var lcBuzzWord = theBuzzObject.buzzWord.toLowerCase();
+  var buzzIndex = buzzWordLookups.indexOf(lcBuzzWord);
+  if(buzzIndex >= 0) {
+    buzzWordLookups.splice(buzzIndex,1);
+    console.log('removed: ', buzzWordList.splice(buzzIndex,1));
+    console.log('buzzword count: ', buzzWordLookups.length);
+    res.status(200).json({"success": true});
+    return true;
+  }
+  console.log(`'${theBuzzObject.buzzWord}' not found.`);
   res.status(400).json({"success": false});
   return false;
 }
