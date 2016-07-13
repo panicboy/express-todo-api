@@ -3,14 +3,14 @@ var app = express();
 
 
 /*  ROUTES  */
-var buzzWord = require ('./routes/buzzword');
+var buzz = require ('./routes/buzzword');
 
 /*  MIDDLEWARE  */
 app.use(express.static('public'));
-app.use('/buzzword', buzzWord);
+app.use('/buzzword', buzz);
 
 app.get('/', function(req, res) {
-  res.send('Hello world!');
+  res.send('Buzzzz!');
 });
 
 
