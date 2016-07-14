@@ -7,24 +7,30 @@ var score = 0;
 
 
 Router.post('/', (req, res) => {
+  var body = coerceBody(req.body);
   if(req.originalUrl == '/reset') {
-    resetBuzzWords(req.body, res);
+    if(validateParams(body, {reset: 'boolean'}, {reset: true})) resetBuzzWords(body, res);
   } else {
-      if(req.body.buzzWord){
-        req.body.points = Number(req.body.points);
-        req.body.heard = false;
-        storeBuzzWord(req.body, res);
+      if(body.buzzWord){
+        if(validateParams(body, {buzzWord: 'string', points: 'number'})){
+          body.heard = false;
+          storeBuzzWord(body, res);
+        } else {
+          sendStatus(res, 400, false);
+        }
       }
-    if(req.body.reset) sendStatus(res, 400, false);
+    if(body.reset) sendStatus(res, 400, false);
   }
 });
 
 Router.put('/', (req, res) => {
-    updateBuzzWord(req.body, res);
+  var body = coerceBody(req.body);
+  if(validateParams(body, {buzzWord: 'string', heard: 'boolean'})) updateBuzzWord(body, res);
 });
 
 Router.delete('/', (req, res) => {
-    deleteBuzzWord(req.body, res);
+  var body = coerceBody(req.body);
+  if(validateParams(body, {buzzWord: 'string'})) deleteBuzzWord(body, res);
 });
 
 Router.get('/', (req, res) => {
@@ -100,4 +106,36 @@ function sendStatus(res, statusCode, resultBoolean, score) {
   if(arguments.length == 3) res.status(statusCode).json({"success": resultBoolean});
   if(arguments.length == 4) res.status(statusCode).json({"success": resultBoolean, newScore: score});
   return resultBoolean;
+}
+
+function validateParams(body, paramObject, paramVals){
+  var checkParamVals = (arguments.length == 3);
+  var testParams = Object.getOwnPropertyNames(paramObject);
+  for (var i = 0; i <= testParams.length -1; i++) {
+    let param = testParams[i];
+    if(!body.hasOwnProperty(param)) return false;
+    // console.log(param,': ', body[param], ', type: ', typeof body[param], ', expected type: ', paramObject[param]);
+    if(typeof body[param] != paramObject[param]) return false;
+    if((checkParamVals && paramVals.hasOwnProperty(param)) &&  body[param] != paramVals[param]) return false;
+  }
+  return true;
+}
+
+function coerceBody(theData){
+  Object.keys(theData).forEach(function(key) {
+    let keyVal = theData[key];
+    if(key == 'reset' || key == 'heard') theData[key] = coerceBoolean(theData[key]);
+    if(key == 'points') theData[key] = coerceNumber(theData[key]);
+  });
+return theData;
+}
+
+function coerceBoolean(theVal) {
+  if(['true',true,'false', false].indexOf(theVal) >= 0) return (theVal == 'true' || theVal === true);
+  return null;
+}
+
+function coerceNumber(theVal) {
+  if(Number(theVal)==theVal) return Number(theVal);
+  return null;
 }
