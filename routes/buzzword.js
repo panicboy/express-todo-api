@@ -11,23 +11,25 @@ Router.post('/', (req, res) => {
   // console.log('req.body: ', Object.getOwnPropertyNames(req.body).length === 0);
   if(props(req.body).length === 0) return res.status(404).json({success: false});
   var body = coerceBody(req.body);
-
   if(req.originalUrl == '/reset') {
     if(validateParams(body, {reset: 'boolean'}, {reset: true})){
       resetBuzzWords(body, res);
     } else {
-      return res.status(404).json({success: false});
+      console.log('POST was to /reset, request was not validated');
+      return res.json({success: false});
     }
   } else {
+    console.log('post was not to /reset');
       if(body.buzzWord){
         if(validateParams(body, {buzzWord: 'string', points: 'number'})){
           body.heard = false;
           storeBuzzWord(body, res);
-        } else {
-          return res.status(404).json({success: false});
+        } else { // buzzWord request body malformed
+          return res.json({success: false});
         }
       }
-    if(body.reset) return res.status(404).json({success: false});
+    console.log('no buzzWord');
+    res.json({success: false});
   }
 });
 
