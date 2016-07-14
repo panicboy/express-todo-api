@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha -w test/index.js"
   },
   "repository": {
     "type": "git",
@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/panicboy/express-todo-api#readme",
   "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^2.5.3",
     "supertest": "^1.2.0",
     "tape": "^4.6.0"
   }
