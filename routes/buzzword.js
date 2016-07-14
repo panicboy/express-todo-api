@@ -7,34 +7,44 @@ var score = 0;
 
 
 Router.post('/', (req, res) => {
+  console.log('method: ', req.method, ', body: ', req.body, ', URL: ', req.originalUrl);
+  // console.log('req.body: ', Object.getOwnPropertyNames(req.body).length === 0);
+  if(props(req.body).length === 0) return res.status(404).json({success: false});
   var body = coerceBody(req.body);
+
   if(req.originalUrl == '/reset') {
-    if(validateParams(body, {reset: 'boolean'}, {reset: true})) resetBuzzWords(body, res);
+    if(validateParams(body, {reset: 'boolean'}, {reset: true})){
+      resetBuzzWords(body, res);
+    } else {
+      return res.status(404).json({success: false});
+    }
   } else {
       if(body.buzzWord){
         if(validateParams(body, {buzzWord: 'string', points: 'number'})){
           body.heard = false;
           storeBuzzWord(body, res);
         } else {
-          sendStatus(res, 400, false);
+          return res.status(404).json({success: false});
         }
       }
-    if(body.reset) sendStatus(res, 400, false);
+    if(body.reset) return res.status(404).json({success: false});
   }
 });
 
 Router.put('/', (req, res) => {
+  if(props(req.body).length === 0) return res.status(404).json({success: false});
   var body = coerceBody(req.body);
   if(validateParams(body, {buzzWord: 'string', heard: 'boolean'})) updateBuzzWord(body, res);
 });
 
 Router.delete('/', (req, res) => {
+  if(props(req.body).length === 0) return res.status(404).json({success: false});
   var body = coerceBody(req.body);
   if(validateParams(body, {buzzWord: 'string'})) deleteBuzzWord(body, res);
 });
 
 Router.get('/', (req, res) => {
-  if(req.originalUrl == '/buzzwords') res.status(200).json({"buzzWords": buzzWordList});
+  if(req.originalUrl == '/buzzwords') res.json({"buzzWords": buzzWordList});
 });
 
 module.exports = Router;
@@ -60,7 +70,7 @@ function updateBuzzWord(body, res){
     buzzWordList[b.indx].heard = bHeard;
     sendStatus(res, 200, true, score);
   } else {
-    sendStatus(res, 400, false);
+    res.status(404).json({success: false});
   }
 }
 
@@ -71,8 +81,8 @@ function deleteBuzzWord(body, res){
     buzzWordList.splice(b.indx,1);
     sendStatus(res, 200, true);
   } else {
-    console.log(`'${buzzReq.buzzWord}' not found.`);
-    sendStatus(res, 400, false);
+    console.log(`'${body.buzzWord}' not found.`);
+    res.status(404).json({success: false});
   }
 }
 
@@ -85,7 +95,7 @@ function resetBuzzWords(body,res){
     sendStatus(res, 200, true);
   } else {
     console.log('reset request not validated');
-    sendStatus(res, 400, false);
+    res.status(404).json({success: false});
   }
 }
 
@@ -103,8 +113,10 @@ function buzzFind(body){
 }
 
 function sendStatus(res, statusCode, resultBoolean, score) {
-  if(arguments.length == 3) res.status(statusCode).json({"success": resultBoolean});
-  if(arguments.length == 4) res.status(statusCode).json({"success": resultBoolean, newScore: score});
+  // if(arguments.length == 3) res.status(statusCode).json({success: resultBoolean});
+  // if(arguments.length == 4) res.status(statusCode).json({success: resultBoolean, newScore: score});
+  if(arguments.length == 3) res.json({success: resultBoolean});
+  if(arguments.length == 4) res.json({success: resultBoolean, newScore: score});
   return resultBoolean;
 }
 
@@ -114,7 +126,7 @@ function validateParams(body, paramObject, paramVals){
   for (var i = 0; i <= testParams.length -1; i++) {
     let param = testParams[i];
     if(!body.hasOwnProperty(param)) return false;
-    if(paramObject[param] == 'boolean' && boolTest(theVal)) body[param] = boolify(body[param]);
+    if(paramObject[param] == 'boolean' && boolTest(body[param])) body[param] = boolify(body[param]);
     if(paramObject[param] == 'number' && numTest(body[param])) body[param] = Number(body[param]);
     // console.log(param,': ', body[param], ', type: ', typeof body[param], ', expected type: ', paramObject[param]);
     if(typeof body[param] != paramObject[param]) return false;
@@ -152,4 +164,8 @@ function numTest(theVal) {
 
 function boolify(theVal) {
   return (theVal == 'true' || theVal === true);
+}
+
+function props(obj) {
+  return Object.getOwnPropertyNames(obj);
 }
